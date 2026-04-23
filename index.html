@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KCH 韩文每日市场报告系统</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-badge">KCH</div>
+        <div>
+          <h1>KCH Market Report Studio</h1>
+          <p>韩文煤炭市场日报自动化原型</p>
+        </div>
+      </div>
+
+      <section class="panel compact">
+        <h2>日报参数</h2>
+        <label>报告日期<input id="reportDate" type="date" /></label>
+        <label>汇率 USD/KRW<input id="fxRate" type="number" placeholder="如 1365" /></label>
+        <label>报告风格
+          <select id="toneSelect">
+            <option value="standard">标准管理层版</option>
+            <option value="trader">交易员快讯版</option>
+            <option value="executive">高管简报版</option>
+          </select>
+        </label>
+        <button id="loadSampleBtn" class="secondary">载入示例数据</button>
+      </section>
+
+      <section class="panel compact">
+        <h2>数据输入</h2>
+        <p class="helper">可直接粘贴 OCR / PDF 提取后的文本，或手动补录关键数字</p>
+        <label>CCI<textarea id="cciInput" placeholder="粘贴 CCI 内容"></textarea></label>
+        <label>Argus<textarea id="argusInput" placeholder="粘贴 Argus 内容"></textarea></label>
+        <label>Platts<textarea id="plattsInput" placeholder="粘贴 Platts 内容"></textarea></label>
+        <label>中国市场补充<textarea id="chinaInput" placeholder="粘贴港口库存、六大电厂煤耗、运费、汇率、政策备注"></textarea></label>
+      </section>
+
+      <section class="panel compact">
+        <h2>关键数字</h2>
+        <div class="grid two">
+          <label>ICI3<input id="ici3" type="number" step="0.01" placeholder="65.80" /></label>
+          <label>ICI3 变动<input id="ici3Change" type="number" step="0.01" placeholder="0.30" /></label>
+          <label>ICI4<input id="ici4" type="number" step="0.01" placeholder="49.27" /></label>
+          <label>ICI4 变动<input id="ici4Change" type="number" step="0.01" placeholder="-0.20" /></label>
+          <label>API5<input id="api5" type="number" step="0.01" placeholder="73.50" /></label>
+          <label>API5 变动<input id="api5Change" type="number" step="0.01" placeholder="-0.45" /></label>
+          <label>QHD库存 mn t<input id="qhdStock" type="number" step="0.01" placeholder="6.25" /></label>
+          <label>QHD 变动<input id="qhdStockChange" type="number" step="0.01" placeholder="-0.12" /></label>
+          <label>6大电厂日耗 kt/d<input id="burnRate" type="number" step="0.1" placeholder="781" /></label>
+          <label>日耗变动<input id="burnRateChange" type="number" step="0.1" placeholder="12" /></label>
+          <label>电厂库存天数<input id="daysCover" type="number" step="0.1" placeholder="16.3" /></label>
+          <label>库存天数变动<input id="daysCoverChange" type="number" step="0.1" placeholder="0.4" /></label>
+          <label>Samarinda-Guangzhou $/t<input id="freight" type="number" step="0.01" placeholder="8.50" /></label>
+          <label>运费变动<input id="freightChange" type="number" step="0.01" placeholder="0.10" /></label>
+        </div>
+      </section>
+
+      <section class="panel compact sticky-actions">
+        <button id="generateBtn">生成韩文日报</button>
+        <button id="exportHtmlBtn" class="secondary">导出 HTML</button>
+        <button id="exportCsvBtn" class="secondary">导出 CSV</button>
+      </section>
+    </aside>
+
+    <main class="content">
+      <section class="panel">
+        <div class="section-head">
+          <h2>系统状态</h2>
+          <span id="statusBadge" class="status neutral">待生成</span>
+        </div>
+        <div class="callout">
+          <strong>当前版本说明</strong>
+          <p>这是一个可运行的前端原型，重点完成 KCH 日报的输入、结构化、韩文输出、图表展示与导出流程。后续可接 Gemini / OpenAI / Apps Script / Gmail 自动收件。</p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>韩文日报输出</h2>
+          <button id="copyReportBtn" class="ghost">复制韩文报告</button>
+        </div>
+        <pre id="reportOutput" class="report-box">请先输入数据，然后点击“生成韩文日报”</pre>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>Pricing Table</h2>
+        </div>
+        <div class="table-wrap">
+          <table id="pricingTable">
+            <thead>
+              <tr>
+                <th>품목</th>
+                <th>지역/기준</th>
+                <th>가격</th>
+                <th>전일 대비</th>
+                <th>시장 톤</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="grid two-panels">
+        <section class="panel">
+          <div class="section-head">
+            <h2>Structured Market Data</h2>
+          </div>
+          <div class="table-wrap tall">
+            <table id="structuredTable">
+              <thead>
+                <tr>
+                  <th>category</th>
+                  <th>item</th>
+                  <th>region</th>
+                  <th>price/value</th>
+                  <th>unit</th>
+                  <th>change</th>
+                  <th>source</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <h2>Visual Trigger</h2>
+            <button id="copyJsonBtn" class="ghost">复制 JSON</button>
+          </div>
+          <pre id="visualJson" class="json-box">{}</pre>
+        </section>
+      </section>
+
+      <section class="grid two-panels">
+        <section class="panel">
+          <div class="section-head"><h2>China Port Inventory Trend</h2></div>
+          <canvas id="inventoryChart" height="180"></canvas>
+        </section>
+        <section class="panel">
+          <div class="section-head"><h2>Major Utility Burn Rate</h2></div>
+          <canvas id="burnChart" height="180"></canvas>
+        </section>
+      </section>
+
+      <section class="panel">
+        <div class="section-head"><h2>Key Price Movement</h2></div>
+        <canvas id="priceChart" height="140"></canvas>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
